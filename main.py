@@ -1,21 +1,21 @@
 import discord
 from discord.ext import commands
-import pytesseract
-from PIL import Image
-import io
+import requests
 import os
 
-# Bot Ayarları
+# BOT AYARLARI
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='.', intents=intents)
 
-# Puan Tablosu
-puan_sistemi = {1: 15, 2: 12, 3: 10, 4: 8, 5: 6, 6: 5, 7: 4, 8: 3, 9: 2, 10: 1, 11: 1, 12: 1}
+# ---------------------------------------------------------
+# OCR API ANAHTARI (Tırnak işaretleri içine alındı)
+# ---------------------------------------------------------
+OCR_API_KEY = 'K87635629488957' 
 
 @bot.event
 async def on_ready():
-    print(f'RAWEN Bot {bot.user} olarak aktif!')
+    print(f'RAWEN Bot {bot.user} olarak aktif ve hazır!')
 
 @bot.event
 async def on_message(message):
@@ -26,27 +26,20 @@ async def on_message(message):
     if message.channel.name == "ss-metin-odası" and message.attachments:
         for attachment in message.attachments:
             if any(attachment.filename.lower().endswith(ext) for ext in ['png', 'jpg', 'jpeg']):
-                await message.channel.send("Resim hızlıca taranıyor... ⚡")
+                await message.channel.send("Resim bulut üzerinden taranıyor... ☁️")
                 
                 try:
-                    # Resmi oku
-                    image_bytes = await attachment.read()
-                    image = Image.open(io.BytesIO(image_bytes))
+                    # OCR Space API kullanımı
+                    payload = {
+                        'apikey': OCR_API_KEY,
+                        'url': attachment.url,
+                        'language': 'eng', 
+                    }
+                    r = requests.post('https://api.ocr.space/parse/image', data=payload)
+                    result = r.json()
                     
-                    # Tesseract ile metni oku (EasyOCR'dan çok daha hafif)
-                    detected_text = pytesseract.image_to_string(image, lang='eng')
-                    
-                    if not detected_text.strip():
-                        await message.channel.send("Resimde okunabilir bir metin bulunamadı.")
-                    else:
-                        await message.channel.send(f"**Okunan Metin:**\n{detected_text[:500]}...")
-                        await message.channel.send("Sonuçlar doğru mu? Onaylıyorsanız ✅ emojisi bırakın.")
-                
-                except Exception as e:
-                    await message.channel.send(f"Hata oluştu: {e}")
-
-    await bot.process_commands(message)
-
-# Tokeni Render üzerinden güvenli alacağız
-token = os.getenv('DISCORD_TOKEN')
-bot.run(token)
+                    if result.get('ParsedResults'):
+                        detected_text = result['ParsedResults'][0]['ParsedText']
+                        if detected_text.strip():
+                            # Metni temizleyip Discord'a gönderir
+                            await message.channel.send(f"**Okunan Metin:**\n

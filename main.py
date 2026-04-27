@@ -4,8 +4,9 @@ import requests
 import os
 
 # BOT AYARLARI
+# Intent'leri tam yetkiyle açıyoruz ki mesajları okuyabilsin
 intents = discord.Intents.default()
-intents.message_content = True  # Mesaj içeriğini okuma izni
+intents.message_content = True
 intents.messages = True
 intents.guilds = True
 
@@ -34,23 +35,25 @@ async def on_message(message):
 
     # Resim kontrolü
     if message.attachments:
-        print(f"Resim algılandı! Kanal: {message.channel.name}")
-        
         target_channel = "ss-metin-odası"
         current_channel = message.channel.name.strip()
         
         if current_channel == target_channel:
             for attachment in message.attachments:
+                # Sadece resim dosyalarını (png, jpg, jpeg) işle
                 if any(attachment.filename.lower().endswith(ext) for ext in ['png', 'jpg', 'jpeg']):
-                    processing_msg = await message.channel.send("Resim algılandı, bulut üzerinden taranıyor... ☁️")
+                    processing_msg = await message.channel.send("Resim algılandı, taranıyor... ☁️")
                     
                     try:
-                        # OCR Space API kullanımı
+                        # OCR Space API kullanımı (Sunucuya tesseract kurmaya gerek bırakmaz)
                         payload = {
                             'apikey': OCR_API_KEY,
                             'url': attachment.url,
                             'language': 'eng', 
+                            'isOverlayRequired': False,
+                            'detectOrientation': True
                         }
+                        
                         r = requests.post('https://api.ocr.space/parse/image', data=payload)
                         result = r.json()
                         
@@ -58,5 +61,5 @@ async def on_message(message):
                             detected_text = result['ParsedResults'][0]['ParsedText']
                             if detected_text.strip():
                                 await processing_msg.edit(content="✅ Tarama Tamamlandı!")
-                                # Metni parçalara bölerek gönder (Discord 2000 karakter sınırı için)
+                                # Metni Discord'un 2000 karakter sınırına takılmaması için keserek gönderiyoruz
                                 await message.channel.send(f"**Okunan Metin:**\n

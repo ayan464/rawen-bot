@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
-import easyocr
+import pytesseract
+from PIL import Image
 import io
 import os
 
@@ -9,10 +10,7 @@ intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='.', intents=intents)
 
-# Resim Okuyucu (OCR) Hazırlığı - Render için CPU modu
-reader = easyocr.Reader(['en'], gpu=False)
-
-# Puan Tablosu (Senin istediğin sistem)
+# Puan Tablosu
 puan_sistemi = {1: 15, 2: 12, 3: 10, 4: 8, 5: 6, 6: 5, 7: 4, 8: 3, 9: 2, 10: 1, 11: 1, 12: 1}
 
 @bot.event
@@ -28,16 +26,22 @@ async def on_message(message):
     if message.channel.name == "ss-metin-odası" and message.attachments:
         for attachment in message.attachments:
             if any(attachment.filename.lower().endswith(ext) for ext in ['png', 'jpg', 'jpeg']):
-                await message.channel.send("Resim işleniyor, lütfen bekleyin... ⏳")
+                await message.channel.send("Resim hızlıca taranıyor... ⚡")
                 
                 try:
+                    # Resmi oku
                     image_bytes = await attachment.read()
-                    results = reader.readtext(image_bytes)
+                    image = Image.open(io.BytesIO(image_bytes))
                     
-                    # Şimdilik okuduğu metinleri gösterir, yarın burayı puanla birleştiririz
-                    detected_text = " ".join([res[1] for res in results])
-                    await message.channel.send(f"Okunan Metin: {detected_text[:500]}...")
-                    await message.channel.send("Sonuçlar doğru mu? Onaylıyorsanız ✅ emojisi bırakın.")
+                    # Tesseract ile metni oku (EasyOCR'dan çok daha hafif)
+                    detected_text = pytesseract.image_to_string(image, lang='eng')
+                    
+                    if not detected_text.strip():
+                        await message.channel.send("Resimde okunabilir bir metin bulunamadı.")
+                    else:
+                        await message.channel.send(f"**Okunan Metin:**\n{detected_text[:500]}...")
+                        await message.channel.send("Sonuçlar doğru mu? Onaylıyorsanız ✅ emojisi bırakın.")
+                
                 except Exception as e:
                     await message.channel.send(f"Hata oluştu: {e}")
 

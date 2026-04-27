@@ -1,3 +1,2 @@
 discord.py
 requests
-    (Yani `pytesseract` veya `Pillow` gibi şeyleri oradan sil ki Render hata vermesin.)

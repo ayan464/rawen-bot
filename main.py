@@ -12,13 +12,14 @@ intents.guilds = True
 bot = commands.Bot(command_prefix='.', intents=intents)
 
 # ---------------------------------------------------------
-# OCR API ANAHTARI (K8 ile başlayan kodun)
+# OCR API ANAHTARI
 # ---------------------------------------------------------
 OCR_API_KEY = 'K87635629488957' 
 
 @bot.event
 async def on_ready():
     print(f'RAWEN Bot {bot.user} olarak aktif ve hazır!')
+    # Botun durumunu Discord'da güncelleyelim
     await bot.change_presence(activity=discord.Game(name="Resimleri Okuyorum..."))
 
 @bot.event
@@ -50,12 +51,12 @@ async def on_message(message):
                             'url': attachment.url,
                             'language': 'eng', 
                         }
-                        r = requests.post('[https://api.ocr.space/parse/image](https://api.ocr.space/parse/image)', data=payload)
+                        r = requests.post('https://api.ocr.space/parse/image', data=payload)
                         result = r.json()
                         
                         if result.get('ParsedResults'):
                             detected_text = result['ParsedResults'][0]['ParsedText']
                             if detected_text.strip():
                                 await processing_msg.edit(content="✅ Tarama Tamamlandı!")
-                                # Metni parçalara bölerek gönder (Discord sınırı için)
+                                # Metni parçalara bölerek gönder (Discord 2000 karakter sınırı için)
                                 await message.channel.send(f"**Okunan Metin:**\n
